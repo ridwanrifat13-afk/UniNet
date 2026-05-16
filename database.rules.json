@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "messages": {
+      "$roomId": {
+        ".read": "auth != null",
+        "$messageId": {
+          ".write": "auth != null && ((!data.exists() && newData.child('senderId').val() == auth.uid) || (data.exists() && !newData.exists() && data.child('senderId').val() == auth.uid))"
+        }
+      }
+    }
+  }
+}

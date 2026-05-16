@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { X, User, ExternalLink, ArrowRight, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { cn } from '../../lib/utils';
 
 export interface Position3D {
   x: number;
@@ -41,6 +43,7 @@ export interface SphereImageGridProps {
   perspective?: number;
   autoRotate?: boolean;
   autoRotateSpeed?: number;
+  isLoggedIn?: boolean;
   className?: string;
 }
 
@@ -96,6 +99,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
   perspective = 1000,
   autoRotate = false,
   autoRotateSpeed = 0.3,
+  isLoggedIn = false,
   className = ''
 }) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
@@ -406,6 +410,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
     const imageSize = baseImageSize * position.scale;
     const isHovered = hoveredIndex === index;
     const finalScale = isHovered ? Math.min(hoverScale, hoverScale / position.scale) : 1;
+    const isPlaceholder = image.id.startsWith('placeholder-');
 
     return (
       <div
@@ -414,8 +419,8 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         style={{
           width: `${imageSize}px`,
           height: `${imageSize}px`,
-          left: `${containerSize/2 + position.x}px`,
-          top: `${containerSize/2 + position.y}px`,
+          left: `${containerSize / 2 + position.x}px`,
+          top: `${containerSize / 2 + position.y}px`,
           opacity: position.fadeOpacity,
           transform: `translate(-50%, -50%) scale(${finalScale})`,
           zIndex: position.zIndex
@@ -424,16 +429,25 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         onMouseLeave={() => setHoveredIndex(null)}
         onClick={() => setSelectedImage(image)}
       >
-        <div className="relative w-full h-full rounded-full overflow-hidden shadow-lg border-2 border-brand-magenta/30 bg-brand-plum">
-          {image.src && (
+        <div className={cn(
+          "relative w-full h-full rounded-full overflow-hidden shadow-lg border-2 transition-all duration-300",
+          isPlaceholder 
+            ? "bg-brand-magenta/5 border-brand-magenta/10" 
+            : "bg-brand-black/40 border-brand-pink/30 hover:border-brand-highlight"
+        )}>
+          {image.src ? (
             <img
               src={image.src}
               alt={image.alt}
               className="w-full h-full object-cover"
               draggable={false}
-              loading={index < 3 ? 'eager' : 'lazy'}
+              loading={index < 5 ? 'eager' : 'lazy'}
             />
-          )}
+          ) : !isPlaceholder ? (
+            <div className="w-full h-full flex items-center justify-center bg-brand-magenta/10 text-brand-highlight font-black text-[10px]">
+              {image.title?.substring(0, 2).toUpperCase()}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -441,68 +455,78 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
 
   const renderSpotlightModal = () => {
     if (!selectedImage) return null;
+    const isPlaceholder = selectedImage.id.startsWith('placeholder-');
 
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-black/80 backdrop-blur-md"
         onClick={() => setSelectedImage(null)}
         style={{ animation: 'fadeIn 0.3s ease-out' }}
       >
         <div
-          className="bg-brand-plum/40 backdrop-blur-xl rounded-2xl border border-brand-magenta/20 max-w-md w-full overflow-hidden shadow-2xl"
+          className="bg-brand-plum/20 backdrop-blur-3xl rounded-[2.5rem] border border-brand-magenta/20 max-w-[310px] w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-300 scrollbar-hide"
           onClick={(e) => e.stopPropagation()}
-          style={{ animation: 'scaleIn 0.3s ease-out' }}
         >
-          <div className="relative aspect-square bg-brand-plum/60">
-            {selectedImage.src && (
+          <div className="relative w-full aspect-square bg-brand-black/40 flex-shrink-0">
+            {selectedImage.src ? (
               <img
                 src={selectedImage.src}
                 alt={selectedImage.alt}
                 className="w-full h-full object-cover"
               />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-brand-magenta/5">
+                <User size={80} className="text-brand-magenta/20" />
+              </div>
             )}
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-brand-black/50 border border-brand-magenta/30 rounded-full text-white flex items-center justify-center hover:bg-brand-magenta transition-all cursor-pointer"
+              className="absolute top-6 right-6 w-10 h-10 bg-brand-black/50 border border-brand-magenta/30 rounded-full text-white flex items-center justify-center hover:bg-brand-magenta transition-all cursor-pointer"
             >
               <X size={20} />
             </button>
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-brand-black to-transparent" />
           </div>
 
-          {(selectedImage.title || selectedImage.description) && (
-            <div className="p-8">
-              {selectedImage.title && (
-                <h3 className="text-2xl font-bold text-white mb-3 font-display">{selectedImage.title}</h3>
-              )}
-              {selectedImage.description && (
-                <p className="text-brand-pink/70 leading-relaxed">{selectedImage.description}</p>
-              )}
+          <div className="p-8 pb-12 space-y-6">
+            <div className="space-y-2">
+              <h3 className="text-3xl font-bold text-white font-display tracking-tight">{selectedImage.title}</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-brand-highlight rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-brand-highlight uppercase tracking-[0.2em]">
+                  {isPlaceholder ? 'Available Seat' : 'CSE Student'}
+                </span>
+              </div>
             </div>
-          )}
+
+            <p className="text-white/60 text-sm leading-relaxed font-medium">
+              {selectedImage.description}
+            </p>
+
+            {!isPlaceholder && (
+              isLoggedIn ? (
+                <Link 
+                  to={`/profile/${selectedImage.id}`}
+                  className="w-full py-4 bg-brand-magenta hover:bg-brand-pink text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-xl shadow-brand-magenta/20 group"
+                >
+                  View Full Profile <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+              ) : (
+                <Link 
+                  to="/login"
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all border border-white/10 group"
+                >
+                  <Lock size={12} className="text-brand-highlight" /> Login to View Profile
+                </Link>
+              )
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  if (!isMounted) {
-    return (
-      <div
-        className="bg-brand-plum/20 rounded-full animate-pulse flex items-center justify-center"
-        style={{ width: containerSize, height: containerSize }}
-      />
-    );
-  }
-
-  if (!images.length) {
-    return (
-      <div
-        className="bg-brand-plum/10 rounded-full flex items-center justify-center border border-brand-magenta/10"
-        style={{ width: containerSize, height: containerSize }}
-      >
-        <div className="text-brand-pink/40 text-center">No individuals found</div>
-      </div>
-    );
-  }
+  if (!isMounted) return null;
 
   return (
     <>
@@ -510,10 +534,6 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
-        }
-        @keyframes scaleIn {
-          from { transform: scale(0.8); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
         }
       `}</style>
 

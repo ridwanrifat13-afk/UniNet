@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from 'motion/react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
+import InstallPWA from './InstallPWA';
 import {
   Home,
   User,
@@ -17,25 +18,28 @@ import {
   Info,
   Menu,
   X,
-  Loader2
+  Loader2,
+  Bell,
+  ShieldAlert
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-const navItems = [
-  { to: '/', icon: Home, label: 'Home' },
-  { to: '/archives', icon: FolderOpen, label: 'Archives' },
-  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
-  { to: '/chat', icon: MessageSquare, label: 'Chat' },
-  { to: '/events', icon: EventsIcon, label: 'Events' },
-  { to: '/projects', icon: Briefcase, label: 'Projects' },
-  { to: '/clubs', icon: Users, label: 'Clubs' },
-  { to: '/gallery', icon: ImageIcon, label: 'Gallery' },
-  { to: '/profile', icon: User, label: 'Profile' },
+const allNavItems = [
+  { to: '/', icon: Home, label: 'Home', isPublic: true },
+  { to: '/archives', icon: FolderOpen, label: 'Archives', isPublic: false },
+  { to: '/calendar', icon: CalendarDays, label: 'Calendar', isPublic: false },
+  { to: '/chat', icon: MessageSquare, label: 'Chat', isPublic: false },
+  { to: '/events', icon: EventsIcon, label: 'Events', isPublic: true },
+  { to: '/notices', icon: Bell, label: 'Notices', isPublic: false },
+  { to: '/projects', icon: Briefcase, label: 'Projects', isPublic: true },
+  { to: '/clubs', icon: Users, label: 'Clubs', isPublic: true },
+  { to: '/gallery', icon: ImageIcon, label: 'Gallery', isPublic: true },
+  { to: '/profile', icon: User, label: 'Profile', isPublic: false },
 ];
 
 const secondaryNavItems = [
-  { to: '/contacts', icon: Phone, label: 'Contacts' },
-  { to: '/about', icon: Info, label: 'About' },
+  { to: '/contacts', icon: Phone, label: 'Contacts', isPublic: true },
+  { to: '/about', icon: Info, label: 'About', isPublic: true },
 ];
 
 export default function Layout() {
@@ -45,13 +49,24 @@ export default function Layout() {
   const isHome = location.pathname === '/';
   
   const [user, loading] = useAuthState(auth);
+  const [timedOut, setTimedOut] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) setTimedOut(true);
+    }, 8000); // 8 second safety buffer
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  const navItems = allNavItems.filter(item => item.isPublic || user);
+  const publicPaths = [...allNavItems, ...secondaryNavItems].filter(i => i.isPublic).map(i => i.to);
 
   useEffect(() => {
-    // If not loading and no user, redirect to login
-    if (!loading && !user) {
+    const isPublicPath = publicPaths.includes(location.pathname);
+    if (!loading && !user && !isPublicPath) {
       navigate('/login');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location.pathname, publicPaths]);
 
   const isRouteActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
@@ -62,16 +77,32 @@ export default function Layout() {
   const logoOpacity = useTransform(scrollYProgress, [0, 0.80, 0.82, 1], [0, 0, 1, 1]);
   const logoY = useTransform(scrollYProgress, [0, 0.80, 0.82, 1], [15, 15, 0, 0]);
 
-  if (loading) {
+  if (loading && !timedOut) {
     return (
       <div className="min-h-screen bg-brand-black flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-brand-magenta animate-spin" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-brand-magenta animate-spin" />
+          <p className="text-[10px] font-black text-brand-highlight/40 uppercase tracking-widest animate-pulse">Syncing Neural Grid...</p>
+        </div>
       </div>
     );
   }
 
-  // If no user after loading, we don't render the layout (the useEffect handles redirect)
-  if (!user) return null;
+  const isPublicPath = publicPaths.includes(location.pathname);
+
+  if (!user && !isPublicPath) {
+     if (timedOut) {
+       return (
+         <div className="min-h-screen bg-brand-black flex flex-col items-center justify-center p-6 text-center">
+           <ShieldAlert className="w-16 h-16 text-red-500 mb-4 animate-bounce" />
+           <h2 className="text-2xl font-bold text-white mb-2">Connection Timeout</h2>
+           <p className="text-brand-highlight/60 max-w-sm mb-8 font-medium">We couldn't connect to the Neural Network. Please check your internet or environment variables.</p>
+           <button onClick={() => window.location.reload()} className="px-8 py-3 bg-brand-magenta text-white rounded-xl font-black uppercase tracking-widest text-xs">Retry Connection</button>
+         </div>
+       );
+     }
+     return null;
+  }
 
   return (
     <div className={cn("flex min-h-screen w-full font-sans transition-colors duration-300 bg-brand-black text-white")}>
@@ -138,8 +169,12 @@ export default function Layout() {
           "bg-brand-black/40 text-white saturate-150"
         )}
       >
-        <div className="flex h-16 items-center px-6 border-b border-brand-magenta/10 shrink-0">
-          {/* Logo placeholder */}
+        <div className="flex h-16 items-center justify-center px-6 border-b border-brand-magenta/10 shrink-0">
+          <img 
+            src="/89980f01-0592-4678-a345-f00c7e0c6a98 3.webp" 
+            alt="Uninet Logo" 
+            className="h-10 w-auto object-contain"
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-3">
@@ -177,7 +212,7 @@ export default function Layout() {
                 to={item.to}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-display font-bold transition-all duration-200",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-display font-bold transition-all duration-200 active:scale-95",
                   active
                     ? "bg-brand-magenta/30 text-white shadow-sm ring-1 ring-brand-highlight/30"
                     : "text-white/60 hover:bg-brand-magenta/15 hover:text-white"
@@ -191,12 +226,21 @@ export default function Layout() {
         </div>
         
         <div className="p-4 border-t border-brand-magenta/10">
-           <button 
-             onClick={() => auth.signOut()}
-             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-bold transition-colors text-white/60 hover:bg-brand-magenta/15 hover:text-brand-highlight"
-           >
-              Log out
-           </button>
+           {user ? (
+             <button 
+               onClick={() => auth.signOut()}
+               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-bold transition-colors text-white/60 hover:bg-brand-magenta/15 hover:text-brand-highlight active:scale-95"
+             >
+                Log out
+             </button>
+           ) : (
+             <NavLink 
+               to="/login"
+               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-bold transition-colors text-white/60 hover:bg-brand-magenta/15 hover:text-brand-highlight active:scale-95"
+             >
+                Log in
+             </NavLink>
+           )}
         </div>
       </aside>
 
@@ -214,6 +258,8 @@ export default function Layout() {
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
+
+      <InstallPWA />
     </div>
   );
 }

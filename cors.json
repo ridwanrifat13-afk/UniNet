@@ -1,0 +1,19 @@
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:5173",
+      "https://uninet-student-network.vercel.app"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "PUT",
+      "POST",
+      "DELETE",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": []
+  }
+]

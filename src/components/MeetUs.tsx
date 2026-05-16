@@ -1,56 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import SphereImageGrid, { ImageData } from "@/src/components/ui/img-sphere";
+import SphereImageGrid, { ImageData } from "../components/ui/img-sphere";
 import { motion } from "motion/react";
+import { db, auth } from '../lib/firebase';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
-// Blank images with placeholder info
-const BASE_IMAGES: Omit<ImageData, 'id'>[] = Array.from({ length: 12 }).map((_, i) => ({
-  src: "", // Blank source as requested
-  alt: `Team Member ${i + 1}`,
-  title: `Team Member ${i + 1}`,
-  description: "Role / Description goes here."
-}));
-
-// Generate more images by repeating the base set
-const IMAGES: ImageData[] = [];
-for (let i = 0; i < 130; i++) {
-  const baseIndex = i % BASE_IMAGES.length;
-  const baseImage = BASE_IMAGES[baseIndex];
-  IMAGES.push({
-    id: `img-${i + 1}`,
-    ...baseImage,
-    alt: `${baseImage.alt} (${Math.floor(i / BASE_IMAGES.length) + 1})`
-  });
+interface StudentProfile {
+  id: string;
+  displayName: string;
+  bio?: string;
+  photoURL?: string;
+  batch?: string;
+  department?: string;
 }
 
 export default function MeetUs() {
+  const [user] = useAuthState(auth);
   const [size, setSize] = useState(600);
+  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch top 130 profiles from Firestore
+    const q = query(collection(db, 'profiles'), limit(130));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as StudentProfile));
+      setStudents(data);
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
-      // Responsive sizing: make it smaller on mobile
       const screenWidth = window.innerWidth;
       if (screenWidth < 640) {
-        setSize(Math.min(screenWidth - 8, 600)); // Mobile Enlarged++
+        // Use full width with a small safety margin
+        setSize(screenWidth - 10); 
       } else if (screenWidth < 1024) {
-        setSize(900); // Tablet Enlarged++
+        setSize(900); 
       } else {
-        setSize(1100); // Desktop Enlarged++
+        setSize(1100); 
       }
     };
 
-    handleResize(); // Initial call
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Map students to Sphere images, fill the rest up to 130
+  const sphereImages: ImageData[] = Array.from({ length: 130 }).map((_, i) => {
+    const student = students[i];
+    if (student) {
+      return {
+        id: student.id,
+        src: student.photoURL || "",
+        alt: student.displayName,
+        title: student.displayName,
+        description: student.bio || `${student.department || 'CSE'} - ${student.batch || 'Batch 2022'}`
+      };
+    }
+    // Placeholder nodes
+    return {
+      id: `placeholder-${i}`,
+      src: "",
+      alt: "Empty Slot",
+      title: "Open Seat",
+      description: "This spot belongs to one of the 130 students of the CSE session. Register now to claim it!"
+    };
+  });
+
+  const isMobile = size < 640;
+
   const config = {
     containerSize: size,
-    sphereRadius: size * 0.33,
+    sphereRadius: size * (isMobile ? 0.40 : 0.35),
     dragSensitivity: 0.8,
     momentumDecay: 0.96,
     maxRotationSpeed: 6,
-    baseImageScale: 0.11, // Increased scale
-    hoverScale: 1.5, // Increased magnifying effect
+    baseImageScale: isMobile ? 0.26 : 0.21, 
+    hoverScale: isMobile ? 1.2 : 1.4, 
     perspective: 1000,
     autoRotate: true,
     autoRotateSpeed: 0.2
@@ -69,14 +103,22 @@ export default function MeetUs() {
         <p className="text-brand-pink max-w-lg mx-auto font-medium">
           Let us introduce ourselves so you get to know 130 individuals with the brightest minds in computing
         </p>
+        <p className="text-[10px] font-black text-brand-highlight/60 uppercase tracking-widest mt-4 animate-pulse">
+          Tap on the image circles to view profile
+        </p>
       </motion.div>
 
-      <div className="flex justify-center items-center w-full max-w-full overflow-hidden -translate-x-2">
-        <SphereImageGrid
-          images={IMAGES}
-          className="mx-auto"
-          {...config}
-        />
+      <div className="flex justify-center items-center w-full -translate-x-3 md:translate-x-0">
+        {loading ? (
+          <div className="animate-pulse bg-brand-plum/10 rounded-full" style={{ width: size, height: size }} />
+        ) : (
+          <SphereImageGrid
+            images={sphereImages}
+            isLoggedIn={!!user}
+            className="mx-auto"
+            {...config}
+          />
+        )}
       </div>
     </section>
   );

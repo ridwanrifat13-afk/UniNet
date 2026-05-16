@@ -1,0 +1,17 @@
+{
+  "name": "UniNet | Student Network",
+  "short_name": "UniNet",
+  "description": "The official departmental network for students.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#ff00ff",
+  "icons": [
+    {
+      "src": "/imresizer-Untitled design (7).webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

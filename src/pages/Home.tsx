@@ -195,6 +195,8 @@ export default function Home() {
             style={{ scale: logoScale, opacity: logoOpacity, display: logoDisplay, transformOrigin: "49.2% 43%" }} 
             className="relative w-72 h-72 md:w-96 md:h-96 flex items-center justify-center will-change-transform z-10"
           >
+            {/* Ambient glow behind logo */}
+            <div className="absolute inset-0 bg-brand-pink/30 blur-[80px] rounded-full z-[-1]" />
             <img 
               src="/CUET_Vector_Logo.svg (1) 2.webp" 
               alt="CUET Logo" 
@@ -429,6 +431,51 @@ export default function Home() {
             </motion.a>
           ))}
         </motion.div>
+
+        {/* Vision Decorative Image & Location Container */}
+        <div className="absolute bottom-0 left-0 w-full pointer-events-none z-20 pb-4 md:pb-12 px-4 md:px-12 h-64 md:h-96">
+          {/* Location Details - Bottom Left */}
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.8 }}
+            className="absolute bottom-6 md:bottom-16 left-6 md:left-12 z-30 space-y-2 md:space-y-3 max-w-[70%] md:max-w-xl"
+          >
+            <p className="text-[10px] md:text-xs font-black text-brand-pink uppercase tracking-[0.4em] mb-1">Campus Location</p>
+            <h4 className="text-sm md:text-xl lg:text-3xl font-bold text-white leading-tight drop-shadow-lg">
+              Chittagong University of <br />
+              Engineering and Technology (CUET)
+            </h4>
+            <p className="text-[10px] md:text-sm lg:text-lg text-brand-highlight/70 font-bold leading-relaxed">
+              Kaptai Highway, রাউজান পাহাড়তলী সড়ক <br />
+              Chattogram 4349, Bangladesh
+            </p>
+            
+            {/* Techy separator */}
+            <div className="flex items-center justify-start gap-3 md:gap-4 pt-2 md:pt-4">
+               <div className="h-[1.5px] w-16 md:w-24 bg-gradient-to-r from-brand-magenta to-transparent" />
+               <div className="w-1.5 h-1.5 bg-brand-pink rounded-full animate-pulse shadow-[0_0_10px_rgba(166,77,121,0.5)]" />
+            </div>
+          </motion.div>
+
+          {/* Decorative Image - Bottom Right */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 0.6, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
+            className="absolute bottom-0 right-0 w-56 sm:w-72 md:w-[32rem] lg:w-[45rem] z-20"
+          >
+            <img 
+              src="/Gemini_Generated_Image_3o0hjx3o0hjx3o0h-removebg-preview.png" 
+              alt="Vision Decorative" 
+              className="w-full h-auto object-contain drop-shadow-[0_0_50px_rgba(223,161,196,0.3)]"
+            />
+            {/* Ambient glow behind image */}
+            <div className="absolute inset-0 bg-brand-pink/5 blur-[100px] rounded-full -z-10" />
+          </motion.div>
+        </div>
       </div>
     </>
   );
