@@ -1,10 +1,14 @@
 {
   "rules": {
-    "messages": {
-      "$roomId": {
-        ".read": "auth != null",
-        "$messageId": {
-          ".write": "auth != null && ((!data.exists() && newData.child('senderId').val() == auth.uid) || (data.exists() && !newData.exists() && data.child('senderId').val() == auth.uid))"
+    "networks": {
+      "$networkId": {
+        "messages": {
+          "$roomId": {
+            ".read": "auth != null && auth.token.email_verified == true",
+            "$messageId": {
+              ".write": "auth != null && auth.token.email_verified == true && ((!data.exists() && newData.child('senderId').val() == auth.uid) || (data.exists() && !newData.exists() && data.child('senderId').val() == auth.uid))"
+            }
+          }
         }
       }
     }

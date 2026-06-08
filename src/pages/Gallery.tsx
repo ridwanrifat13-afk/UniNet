@@ -6,6 +6,7 @@ import { collection, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestor
 import { useStore } from '../lib/store';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { uploadFileToR2 } from '../lib/storage';
+import { useNetwork } from '../lib/network-context';
 
 const SPANS = [
   "md:col-span-2 md:row-span-2",
@@ -19,6 +20,7 @@ const SPANS = [
 export default function Gallery() {
   const [user] = useAuthState(auth);
   const { gallery: images, galleryLoaded, fetchGallery } = useStore();
+  const { networkId } = useNetwork();
   const loading = !galleryLoaded;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -30,8 +32,8 @@ export default function Gallery() {
 
   useEffect(() => {
     console.log("Gallery useEffect running! Calling fetchGallery()");
-    fetchGallery();
-  }, [fetchGallery]);
+    if (networkId) fetchGallery(networkId);
+  }, [fetchGallery, networkId]);
 
   const mappedImages = images.map((img, index) => ({
     ...img,
@@ -46,7 +48,7 @@ export default function Gallery() {
     try {
       const url = await uploadFileToR2(file);
 
-      await addDoc(collection(db, 'gallery'), {
+      await addDoc(collection(db, `networks/${networkId}/gallery`), {
         title,
         desc,
         url,
@@ -72,7 +74,7 @@ export default function Gallery() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Permanently delete this memory?")) return;
     try {
-      await deleteDoc(doc(db, 'gallery', id));
+      await deleteDoc(doc(db, `networks/${networkId}/gallery`, id));
     } catch (err) {
       console.error(err);
     }

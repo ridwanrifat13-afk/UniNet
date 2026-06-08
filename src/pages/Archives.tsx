@@ -1,10 +1,11 @@
 import { Search, FolderOpen, FileText, Download, Filter, Plus, X, Globe, Loader2, Link as LinkIcon, Trash2, Hash, Menu } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '../lib/utils';
 import { collection, addDoc, query, orderBy, Timestamp, deleteDoc, doc, limit } from 'firebase/firestore';
 import { useStore } from '../lib/store';
 import { db, auth } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useNetwork } from '../lib/network-context';
 
 interface ArchiveDoc {
   id: string;
@@ -17,10 +18,10 @@ interface ArchiveDoc {
 
 const BATCH_GROUPS = [
   { id: 'all', name: 'All Resources', description: 'Everything in the archive' },
-  { id: 'batch2021', name: 'Batch 2021', description: 'Docs for 2021 session' },
-  { id: 'batch2022', name: 'Batch 2022', description: 'Docs for 2022 session' },
-  { id: 'batch2023', name: 'Batch 2023', description: 'Docs for 2023 session' },
-  { id: 'batch2024', name: 'Batch 2024', description: 'Docs for 2024 session' },
+  { id: 'cohort2021', name: 'Cohort 2021', description: 'Docs for 2021 session' },
+  { id: 'cohort2022', name: 'Cohort 2022', description: 'Docs for 2022 session' },
+  { id: 'cohort2023', name: 'Cohort 2023', description: 'Docs for 2023 session' },
+  { id: 'cohort2024', name: 'Cohort 2024', description: 'Docs for 2024 session' },
   { id: 'faculty', name: 'Faculty', description: 'Official departmental docs' },
   { id: 'general', name: 'General', description: 'Miscellaneous resources' },
 ];
@@ -35,16 +36,17 @@ export default function Archives() {
   // Form State
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
-  const [newBatch, setNewBatch] = useState('Batch 2022');
+  const [newBatch, setNewBatch] = useState('Cohort 2022');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Firestore Data
   const { archives, archivesLoaded, fetchArchives } = useStore();
   const loading = !archivesLoaded;
+  const { networkId } = useNetwork();
 
-  React.useEffect(() => {
-    fetchArchives();
-  }, [fetchArchives]);
+  useEffect(() => {
+    if (networkId) fetchArchives(networkId);
+  }, [fetchArchives, networkId]);
 
   // Filtering Logic
   const filteredArchives = archives.filter(doc => {
@@ -59,7 +61,7 @@ export default function Archives() {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'archives'), {
+      await addDoc(collection(db, `networks/${networkId}/archives`), {
         title: newTitle.trim(),
         url: newUrl.trim(),
         batch: newBatch.trim(),
@@ -80,7 +82,7 @@ export default function Archives() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to remove this resource?")) {
       try {
-        await deleteDoc(doc(db, 'archives', id));
+        await deleteDoc(doc(db, `networks/${networkId}/archives`, id));
       } catch (err) {
         console.error(err);
       }
@@ -90,7 +92,7 @@ export default function Archives() {
   return (
     <div className="flex h-[calc(100dvh-6rem)] lg:h-[calc(100dvh-4rem)] bg-brand-plum/10 backdrop-blur-3xl border border-brand-magenta/30 rounded-[2.5rem] overflow-hidden shadow-2xl relative animate-in fade-in duration-700">
       
-      {/* Sidebar - Batch Groups */}
+      {/* Sidebar - Cohort Groups */}
       <div className={cn(
         "absolute inset-y-0 left-0 z-50 w-64 bg-brand-black/95 md:bg-brand-black/40 backdrop-blur-3xl border-r border-brand-magenta/30 transform transition-transform duration-300 md:relative md:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -264,7 +266,7 @@ export default function Archives() {
                 <input required type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="https://..." className="w-full px-5 py-4 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white outline-none focus:ring-2 focus:ring-brand-pink/40 transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Assign to Batch</label>
+                <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Assign to Cohort</label>
                 <select value={newBatch} onChange={(e) => setNewBatch(e.target.value)} className="w-full px-5 py-4 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white outline-none focus:ring-2 focus:ring-brand-pink/40 transition-all appearance-none">
                   {BATCH_GROUPS.filter(g => g.id !== 'all').map(g => (
                     <option key={g.id} value={g.name} className="bg-brand-plum text-white">{g.name}</option>

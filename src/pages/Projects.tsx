@@ -6,6 +6,7 @@ import { collection, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestor
 import { useStore } from '../lib/store';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { uploadFileToR2 } from '../lib/storage';
+import { useNetwork } from '../lib/network-context';
 
 interface Project {
   id: string;
@@ -22,6 +23,7 @@ interface Project {
 export default function Projects() {
   const [user] = useAuthState(auth);
   const { projects, projectsLoaded, fetchProjects } = useStore();
+  const { networkId } = useNetwork();
   const loading = !projectsLoaded;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -35,12 +37,12 @@ export default function Projects() {
   const [image, setImage] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    if (networkId) fetchProjects(networkId);
+  }, [fetchProjects, networkId]);
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !networkId) return;
     setUploading(true);
 
     try {
@@ -49,7 +51,7 @@ export default function Projects() {
         imageUrl = await uploadFileToR2(image);
       }
 
-      await addDoc(collection(db, 'projects'), {
+      await addDoc(collection(db, `networks/${networkId}/projects`), {
         title,
         description,
         team,
@@ -81,7 +83,7 @@ export default function Projects() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Remove this project from the showcase?")) return;
     try {
-      await deleteDoc(doc(db, 'projects', id));
+      await deleteDoc(doc(db, `networks/${networkId}/projects`, id));
     } catch (err) {
       console.error(err);
     }
@@ -92,7 +94,7 @@ export default function Projects() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
           <h1 className="text-4xl font-bold text-white tracking-tight font-display">Projects Showcase</h1>
-          <p className="text-brand-highlight/60 mt-2 font-medium">Innovation and engineering excellence from CSE-25</p>
+          <p className="text-brand-highlight/60 mt-2 font-medium">Innovation and engineering excellence from our network</p>
         </div>
         
         {user && (

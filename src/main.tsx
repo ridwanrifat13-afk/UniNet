@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import App from './App.tsx';
+import { NetworkProvider } from './lib/network-context';
 import './index.css';
 
 // Inject Vercel Services
@@ -11,6 +12,8 @@ injectSpeedInsights();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <NetworkProvider>
+      <App />
+    </NetworkProvider>
   </StrictMode>,
 );

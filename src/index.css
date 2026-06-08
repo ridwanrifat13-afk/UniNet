@@ -14,14 +14,45 @@
   font-style: normal;
 }
 
+:root {
+  /* Default Dark (Magenta) */
+  --theme-bg: #000000;
+  --theme-text: #ffffff;
+  --theme-plum: #3B1C32;
+  --theme-magenta: #A64D79;
+  --theme-pink: #A64D79;
+  --theme-highlight: #DFA1C4;
+}
+
+.theme-light {
+  --theme-bg: #F8F9FA;
+  --theme-text: #111827;
+  --theme-plum: #E2E8F0;
+  --theme-magenta: #4F46E5; /* Indigo */
+  --theme-pink: #6366F1;
+  --theme-highlight: #4B5563;
+}
+
+.theme-premium {
+  --theme-bg: #0F172A; /* Slate 900 */
+  --theme-text: #F8FAFC;
+  --theme-plum: #1E293B;
+  --theme-magenta: #D97706; /* Amber/Gold */
+  --theme-pink: #F59E0B;
+  --theme-highlight: #94A3B8;
+}
+
 @theme {
   --font-sans: "Signika Light", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-display: "Bitcount Cursive", cursive;
-  --color-brand-black: #000000;
-  --color-brand-plum: #3B1C32;
-  --color-brand-magenta: #A64D79;
-  --color-brand-pink: #A64D79;
-  --color-brand-highlight: #DFA1C4;
+  
+  --color-white: var(--theme-text);
+  --color-black: var(--theme-bg);
+  --color-brand-black: var(--theme-bg);
+  --color-brand-plum: var(--theme-plum);
+  --color-brand-magenta: var(--theme-magenta);
+  --color-brand-pink: var(--theme-pink);
+  --color-brand-highlight: var(--theme-highlight);
 }
 
 @layer base {

@@ -6,6 +6,7 @@ import { doc, setDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc } f
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useParams } from 'react-router-dom';
 import { uploadFileToR2 } from '../lib/storage';
+import { useNetwork } from '../lib/network-context';
 
 interface UserProfile {
   displayName: string;
@@ -24,6 +25,7 @@ interface UserProfile {
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
   const [user] = useAuthState(auth);
+  const { networkId } = useNetwork();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -44,9 +46,9 @@ export default function Profile() {
   const [editLinks, setEditLinks] = useState<{ label: string, url: string }[]>([]);
 
   useEffect(() => {
-    if (!targetUid) return;
+    if (!targetUid || !networkId) return;
 
-    const unsub = onSnapshot(doc(db, 'profiles', targetUid), (snapshot) => {
+    const unsub = onSnapshot(doc(db, `networks/${networkId}/members`, targetUid), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as UserProfile;
         setProfile(data);
@@ -66,7 +68,7 @@ export default function Profile() {
           email: user.email,
           repository: []
         };
-        setDoc(doc(db, 'profiles', user.uid), initialData);
+        setDoc(doc(db, `networks/${networkId}/members`, user.uid), initialData);
       } else {
         setDbError("Profile not found or access denied.");
       }
@@ -78,15 +80,15 @@ export default function Profile() {
     });
 
     return () => unsub();
-  }, [targetUid, isOwnProfile, user]);
+  }, [targetUid, isOwnProfile, user, networkId]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !networkId) return;
     setLoading(true);
 
     try {
-      await updateDoc(doc(db, 'profiles', user.uid), {
+      await updateDoc(doc(db, `networks/${networkId}/members`, user.uid), {
         displayName: editName,
         bio: editBio,
         batch: editBatch,
@@ -107,12 +109,12 @@ export default function Profile() {
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !networkId) return;
 
     setUploading(true);
     try {
       const url = await uploadFileToR2(file);
-      await updateDoc(doc(db, 'profiles', user.uid), { photoURL: url });
+      await updateDoc(doc(db, `networks/${networkId}/members`, user.uid), { photoURL: url });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -122,7 +124,7 @@ export default function Profile() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !networkId) return;
 
     setUploading(true);
     try {
@@ -134,7 +136,7 @@ export default function Profile() {
         type: 'Public', // Default
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       };
-      await updateDoc(doc(db, 'profiles', user.uid), {
+      await updateDoc(doc(db, `networks/${networkId}/members`, user.uid), {
         repository: arrayUnion(newFile)
       });
     } catch (err: any) {
@@ -145,9 +147,9 @@ export default function Profile() {
   };
 
   const removeFile = async (file: any) => {
-    if (!user || !window.confirm("Remove this file from your repository?")) return;
+    if (!user || !networkId || !window.confirm("Remove this file from your repository?")) return;
     try {
-      await updateDoc(doc(db, 'profiles', user.uid), {
+      await updateDoc(doc(db, `networks/${networkId}/members`, user.uid), {
         repository: arrayRemove(file)
       });
     } catch (err) {
@@ -219,7 +221,7 @@ export default function Profile() {
                 <div className="pb-4">
                   <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight font-display">{profile?.displayName || 'Anonymous'}</h1>
                   <div className="flex items-center gap-2 mt-2 text-brand-highlight font-black uppercase tracking-widest text-[10px]">
-                    <span className="px-2 py-0.5 bg-brand-magenta/30 rounded-md">Batch {profile?.batch || 'N/A'}</span>
+                    <span className="px-2 py-0.5 bg-brand-magenta/30 rounded-md">Cohort {profile?.batch || 'N/A'}</span>
                     <span className="w-1 h-1 bg-brand-pink/50 rounded-full" />
                     <span>{profile?.department || 'Member'}</span>
                   </div>
@@ -342,7 +344,7 @@ export default function Profile() {
                   <input required type="text" value={editName} onChange={(e) => setEditName(e.target.value)} autoComplete="name" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white outline-none focus:ring-2 focus:ring-brand-pink/40 transition-all" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Batch (e.g. 2022)</label>
+                  <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Cohort/Batch (e.g. 2024)</label>
                   <input type="text" inputMode="numeric" value={editBatch} onChange={(e) => setEditBatch(e.target.value)} className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white outline-none focus:ring-2 focus:ring-brand-pink/40 transition-all" />
                 </div>
               </div>

@@ -2,61 +2,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user owns the document
-    function isOwner() {
-      return request.auth != null && resource.data.addedBy == request.auth.uid;
+    // Check if user is authenticated and has verified their email
+    function isVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
-    // Helper function to check if the new document assigns the correct owner
-    function isCreatingWithOwner() {
-      return request.auth != null && request.resource.data.addedBy == request.auth.uid;
-    }
+    match /networks/{networkId} {
+      // Public reading for the network document itself
+      allow read: if true;
+      allow create: if isVerified();
+      // Allow update if the user is the creator or an admin
+      allow update: if isVerified() && (resource.data.createdBy == request.auth.uid || isAdmin());
 
-    match /projects/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /events/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /clubs/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /notices/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /archives/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /gallery/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /calendar/{document} {
-      allow read: if true;
-      allow create: if isCreatingWithOwner();
-      allow update, delete: if isOwner();
-    }
-    
-    match /profiles/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Helper function to check if user is a member
+      function isMember() {
+        return exists(/databases/$(database)/documents/networks/$(networkId)/members/$(request.auth.uid));
+      }
+
+      // Helper function to check if user is an admin
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/networks/$(networkId)/admins/$(request.auth.uid));
+      }
+
+      // Helper function to check if user owns the document
+      function isOwner() {
+        return isVerified() && resource.data.addedBy == request.auth.uid;
+      }
+
+      // Helper function to check if the new document assigns the correct owner
+      function isCreatingWithOwner() {
+        return isVerified() && request.resource.data.addedBy == request.auth.uid;
+      }
+
+      match /members/{userId} {
+        allow read: if true;
+        allow write: if isVerified() && request.auth.uid == userId;
+      }
+
+      // Public collections (Anyone can read, only verified members can write)
+      match /projects/{document} {
+        allow read: if true;
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+      
+      match /events/{document} {
+        allow read: if true;
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+      
+      match /clubs/{document} {
+        allow read: if true;
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+      
+      match /gallery/{document} {
+        allow read: if true;
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+
+      // Private collections (Only verified members can read or write)
+      match /notices/{document} {
+        allow read: if isVerified() && isMember();
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+      
+      match /archives/{document} {
+        allow read: if isVerified() && isMember();
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
+      
+      match /calendar/{document} {
+        allow read: if isVerified() && isMember();
+        allow create: if isCreatingWithOwner() && isMember();
+        allow update, delete: if isOwner();
+      }
     }
   }
 }

@@ -494,7 +494,7 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-brand-highlight rounded-full animate-pulse" />
                 <span className="text-[10px] font-black text-brand-highlight uppercase tracking-[0.2em]">
-                  {isPlaceholder ? 'Available Seat' : 'CSE Student'}
+                  {isPlaceholder ? 'Available Seat' : 'Student'}
                 </span>
               </div>
             </div>

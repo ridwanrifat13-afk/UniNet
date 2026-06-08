@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../lib/firebase';
+import { sendEmailVerification } from 'firebase/auth';
 import { cn } from '../lib/utils';
 import InstallPWA from './InstallPWA';
 import {
@@ -20,7 +21,8 @@ import {
   X,
   Loader2,
   Bell,
-  ShieldAlert
+  ShieldAlert,
+  Mail
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -68,6 +70,25 @@ export default function Layout() {
     }
   }, [user, loading, navigate, location.pathname, publicPaths]);
 
+  // Silent verification check while user is on the verification page
+  useEffect(() => {
+    if (user && !user.emailVerified) {
+      const interval = setInterval(async () => {
+        try {
+          await user.reload();
+          if (user.emailVerified) {
+            await user.getIdToken(true); // force refresh ID token to set claims
+            clearInterval(interval);
+            window.location.reload();
+          }
+        } catch (e) {
+          console.error("Error reloading user status:", e);
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
   const isRouteActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
     return location.pathname.startsWith(path);
@@ -89,6 +110,60 @@ export default function Layout() {
   }
 
   const isPublicPath = publicPaths.includes(location.pathname);
+
+  // Email Verification Guard
+  if (user && !user.emailVerified && !isPublicPath) {
+    return (
+      <div className="min-h-screen bg-brand-black flex flex-col items-center justify-center p-6 text-center">
+        <Mail className="w-16 h-16 text-brand-magenta mb-4 animate-pulse" />
+        <h2 className="text-2xl font-bold text-white mb-2">Verify Your Email</h2>
+        <p className="text-brand-highlight/60 max-w-sm mb-8 font-medium">
+          We've sent a verification link to <span className="text-white">{user.email}</span>. Please verify your email to access the full network.
+        </p>
+        <div className="flex flex-col gap-4 w-full max-w-xs">
+          <button 
+            onClick={async () => {
+              try {
+                if (user) {
+                  await user.reload();
+                  if (user.emailVerified) {
+                    await user.getIdToken(true); // Force token refresh
+                    window.location.reload();
+                  } else {
+                    alert("Email not verified yet. Please check your inbox!");
+                  }
+                }
+              } catch (err: any) {
+                alert("Failed to sync verification state: " + err.message);
+              }
+            }} 
+            className="px-8 py-3 bg-brand-magenta text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-magenta/20"
+          >
+            I've Verified (Reload)
+          </button>
+          <button 
+            onClick={async () => {
+              try {
+                await sendEmailVerification(user);
+                alert("Verification email resent!");
+              } catch (err: any) {
+                alert(err.message);
+              }
+            }} 
+            className="px-8 py-3 bg-white/5 text-white/60 hover:text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors"
+          >
+            Resend Verification Email
+          </button>
+          <button 
+            onClick={() => auth.signOut()} 
+            className="text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest pt-4"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!user && !isPublicPath) {
      if (timedOut) {

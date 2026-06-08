@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import SphereImageGrid, { ImageData } from "../components/ui/img-sphere";
 import { motion } from "motion/react";
 import { db, auth } from '../lib/firebase';
-import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, doc, getDoc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useNetwork } from '../lib/network-context';
 
 interface StudentProfile {
   id: string;
@@ -19,21 +20,32 @@ export default function MeetUs() {
   const [size, setSize] = useState(600);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nodeCount, setNodeCount] = useState(130);
+  const { networkId } = useNetwork();
 
   useEffect(() => {
-    // Fetch top 130 profiles from Firestore
-    const q = query(collection(db, 'profiles'), limit(130));
+    if (!networkId) return;
+
+    const fetchConfig = async () => {
+      const snap = await getDoc(doc(db, 'networks', networkId));
+      if (snap.exists() && snap.data().nodeCount) {
+        setNodeCount(snap.data().nodeCount);
+      }
+    };
+    fetchConfig();
+
+    const q = query(collection(db, `networks/${networkId}/members`), limit(nodeCount));
     const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const data = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
       } as StudentProfile));
       setStudents(data);
       setLoading(false);
     });
 
     return () => unsub();
-  }, []);
+  }, [networkId, nodeCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -53,8 +65,8 @@ export default function MeetUs() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Map students to Sphere images, fill the rest up to 130
-  const sphereImages: ImageData[] = Array.from({ length: 130 }).map((_, i) => {
+  // Map students to Sphere images, fill the rest up to nodeCount
+  const sphereImages: ImageData[] = Array.from({ length: nodeCount }).map((_, i) => {
     const student = students[i];
     if (student) {
       return {
@@ -62,7 +74,7 @@ export default function MeetUs() {
         src: student.photoURL || "",
         alt: student.displayName,
         title: student.displayName,
-        description: student.bio || `${student.department || 'CSE'} - ${student.batch || 'Batch 2022'}`
+        description: student.bio || `${student.department || 'Department'} - ${student.batch || 'Network Member'}`
       };
     }
     // Placeholder nodes
@@ -71,7 +83,7 @@ export default function MeetUs() {
       src: "",
       alt: "Empty Slot",
       title: "Open Seat",
-      description: "This spot belongs to one of the 130 students of the CSE session. Register now to claim it!"
+      description: "This spot belongs to one of the members of the network. Register now to claim it!"
     };
   });
 
@@ -101,7 +113,7 @@ export default function MeetUs() {
       >
         <h2 className="text-4xl md:text-5xl font-bold text-brand-highlight mb-4 tracking-tight">Meet Us</h2>
         <p className="text-brand-pink max-w-lg mx-auto font-medium">
-          Let us introduce ourselves so you get to know 130 individuals with the brightest minds in computing
+          Let us introduce ourselves so you get to know the individuals in our network
         </p>
         <p className="text-[10px] font-black text-brand-highlight/60 uppercase tracking-widest mt-4 animate-pulse">
           Tap on the image circles to view profile

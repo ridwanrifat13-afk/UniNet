@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalIcon, Clock, MapPin, Plus, X, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { collection, addDoc, query, orderBy, Timestamp, deleteDoc, doc, where, limit } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, deleteDoc, doc } from 'firebase/firestore';
 import { useStore } from '../lib/store';
 import { db, auth } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useNetwork } from '../lib/network-context';
 
 interface CalendarEvent {
   id: string;
@@ -32,10 +33,11 @@ export default function Calendar() {
   // Firestore Data
   const { calendar: events, calendarLoaded, fetchCalendar } = useStore();
   const loading = !calendarLoaded;
+  const { networkId } = useNetwork();
 
-  React.useEffect(() => {
-    fetchCalendar();
-  }, [fetchCalendar]);
+  useEffect(() => {
+    if (networkId) fetchCalendar(networkId);
+  }, [fetchCalendar, networkId]);
 
   // Calendar Logic
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -55,7 +57,7 @@ export default function Calendar() {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'calendar'), {
+      await addDoc(collection(db, `networks/${networkId}/calendar`), {
         title: newTitle.trim(),
         type: newType.trim(),
         date: Timestamp.fromDate(new Date(newDate)),
@@ -81,7 +83,7 @@ export default function Calendar() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Remove this entry from the academic calendar?")) {
       try {
-        await deleteDoc(doc(db, 'calendar', id));
+        await deleteDoc(doc(db, `networks/${networkId}/calendar`, id));
       } catch (err) {
         console.error(err);
       }

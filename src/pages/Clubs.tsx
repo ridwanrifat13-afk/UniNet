@@ -6,6 +6,7 @@ import { collection, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestor
 import { useStore } from '../lib/store';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { uploadFileToR2 } from '../lib/storage';
+import { useNetwork } from '../lib/network-context';
 
 interface Club {
   id: string;
@@ -27,6 +28,7 @@ export default function Clubs() {
   const loading = !clubsLoaded;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { networkId } = useNetwork();
 
   // Form State
   const [name, setName] = useState('');
@@ -39,12 +41,12 @@ export default function Clubs() {
   const [banner, setBanner] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchClubs();
-  }, [fetchClubs]);
+    if (networkId) fetchClubs(networkId);
+  }, [fetchClubs, networkId]);
 
   const handleAddClub = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !networkId) return;
     setUploading(true);
 
     try {
@@ -53,7 +55,7 @@ export default function Clubs() {
         bannerUrl = await uploadFileToR2(banner);
       }
 
-      await addDoc(collection(db, 'clubs'), {
+      await addDoc(collection(db, `networks/${networkId}/clubs`), {
         name,
         description,
         category,
@@ -89,7 +91,7 @@ export default function Clubs() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Remove this club from the directory?")) return;
     try {
-      await deleteDoc(doc(db, 'clubs', id));
+      await deleteDoc(doc(db, `networks/${networkId}/clubs`, id));
     } catch (err) {
       console.error(err);
     }
@@ -100,7 +102,7 @@ export default function Clubs() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
           <h1 className="text-4xl font-bold text-white tracking-tight font-display">Clubs & Societies</h1>
-          <p className="text-brand-highlight/60 mt-2 font-medium">Join the most active student organizations in CUET</p>
+          <p className="text-brand-highlight/60 mt-2 font-medium">Join the most active student organizations in the network</p>
         </div>
         
         {user && (
@@ -226,7 +228,7 @@ export default function Clubs() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Club Name</label>
-                  <input required type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. CUET Computer Club" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
+                  <input required type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Robotics Club" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Category</label>

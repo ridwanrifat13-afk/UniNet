@@ -5,6 +5,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { useStore } from '../lib/store';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useNetwork } from '../lib/network-context';
 
 interface Notice {
   id: string;
@@ -36,6 +37,7 @@ export default function Notices() {
   const { notices, noticesLoaded, fetchNotices } = useStore();
   const loading = !noticesLoaded;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { networkId } = useNetwork();
 
   // Form State
   const [title, setTitle] = useState('');
@@ -46,8 +48,8 @@ export default function Notices() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchNotices();
-  }, [fetchNotices]);
+    if (networkId) fetchNotices(networkId);
+  }, [fetchNotices, networkId]);
 
   const handleAddNotice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +57,7 @@ export default function Notices() {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'notices'), {
+      await addDoc(collection(db, `networks/${networkId}/notices`), {
         title,
         content,
         category,
@@ -85,7 +87,7 @@ export default function Notices() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Remove this notice?")) return;
     try {
-      await deleteDoc(doc(db, 'notices', id));
+      await deleteDoc(doc(db, `networks/${networkId}/notices`, id));
     } catch (err) {
       console.error(err);
     }

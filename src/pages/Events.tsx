@@ -5,6 +5,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, doc, Timestamp, where } from 'firebase/firestore';
 import { useStore } from '../lib/store';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useNetwork } from '../lib/network-context';
 import { uploadFileToR2 } from '../lib/storage';
 
 interface Event {
@@ -32,6 +33,7 @@ export default function Events() {
   const { events, eventsLoaded, fetchEvents } = useStore();
   const loading = !eventsLoaded;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { networkId } = useNetwork();
 
   // Form State
   const [title, setTitle] = useState('');
@@ -44,8 +46,8 @@ export default function Events() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (networkId) fetchEvents(networkId);
+  }, [fetchEvents, networkId]);
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +60,7 @@ export default function Events() {
         imageUrl = await uploadFileToR2(image);
       }
 
-      await addDoc(collection(db, 'events'), {
+      await addDoc(collection(db, `networks/${networkId}/events`), {
         title,
         description,
         date: Timestamp.fromDate(new Date(date)),
@@ -92,7 +94,7 @@ export default function Events() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Remove this event?")) return;
     try {
-      await deleteDoc(doc(db, 'events', id));
+      await deleteDoc(doc(db, `networks/${networkId}/events`, id));
     } catch (err) {
       console.error(err);
     }
@@ -234,7 +236,7 @@ export default function Events() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Event Title</label>
-                  <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. CUET Hackathon 2024" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
+                  <input required type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Annual Hackathon 2024" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Category</label>
@@ -251,7 +253,7 @@ export default function Events() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-brand-highlight uppercase tracking-widest ml-1">Location / Room</label>
-                  <input required type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. CSE Seminar Library" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
+                  <input required type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Main Auditorium" className="w-full px-5 py-3.5 bg-brand-black/40 border border-brand-magenta/30 rounded-2xl text-white focus:ring-2 focus:ring-brand-pink/40 outline-none transition-all" />
                 </div>
               </div>
 

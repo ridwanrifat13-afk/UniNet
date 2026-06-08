@@ -5,14 +5,14 @@ import { getDatabase } from "firebase/database";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBIA2OxCvMVCSWQ4YInwIAwEgTT0F_F7n0",
-  authDomain: "cuet-cse25-network-app.firebaseapp.com",
-  projectId: "cuet-cse25-network-app",
-  storageBucket: "cuet-cse25-network-app.firebasestorage.app",
-  messagingSenderId: "948267743653",
-  appId: "1:948267743653:web:2b2c7bf8ee121487a9d04c",
-  measurementId: "G-LHZP6D0RFZ",
-  databaseURL: "https://cuet-cse25-network-app-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
 };
 
 // Initialize Firebase only once

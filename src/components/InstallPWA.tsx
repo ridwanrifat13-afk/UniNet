@@ -23,24 +23,29 @@ export default function InstallPWA() {
         setShowPrompt(true);
       });
 
-      // Show manual prompt for iOS after a short delay
-      if (isIOSDevice) {
-        const timer = setTimeout(() => setShowPrompt(true), 3000);
-        return () => clearTimeout(timer);
-      }
+      // Show manual prompt after a very short delay
+      const timer = setTimeout(() => {
+        setShowPrompt(true);
+      }, 1000); // 1 second delay
+
+      return () => clearTimeout(timer);
     }
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setShowPrompt(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setShowPrompt(false);
+      setDeferredPrompt(null);
+    } else {
+      // Fallback for iOS or if prompt isn't ready
+      if (isIOS) {
+        alert("To install on iOS: Tap 'Share' and then 'Add to Home Screen'.");
+      } else {
+        alert("To install: Open your browser menu and select 'Install App' or 'Add to Home Screen'.");
+      }
     }
-    setDeferredPrompt(null);
   };
 
   return (
@@ -71,23 +76,15 @@ export default function InstallPWA() {
             </div>
 
             <p className="text-sm text-white/60 font-medium mb-6 leading-relaxed">
-              {isIOS 
-                ? "Tap the 'Share' icon below and select 'Add to Home Screen' for the best experience."
-                : "Add UniNet to your home screen for instant access and faster loading."}
+              Add UniNet to your home screen for instant access, offline support, and a better experience.
             </p>
 
-            {!isIOS ? (
-              <button
-                onClick={handleInstall}
-                className="w-full bg-brand-magenta hover:bg-brand-pink text-white font-black py-3.5 rounded-xl transition-all shadow-lg shadow-brand-magenta/20 uppercase tracking-widest text-xs"
-              >
-                Install Now
-              </button>
-            ) : (
-              <div className="text-center text-[10px] font-black text-brand-pink uppercase tracking-[0.2em] animate-pulse">
-                Follow Instructions Above
-              </div>
-            )}
+            <button
+              onClick={handleInstall}
+              className="w-full bg-brand-magenta hover:bg-brand-pink text-white font-black py-3.5 rounded-xl transition-all shadow-lg shadow-brand-magenta/20 uppercase tracking-widest text-xs"
+            >
+              Install Now
+            </button>
           </div>
         </motion.div>
       )}

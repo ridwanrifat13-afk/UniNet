@@ -5,6 +5,7 @@ import { rtdb, auth } from '../lib/firebase';
 import { ref, push, onValue, query, limitToLast, serverTimestamp, remove } from 'firebase/database';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Virtuoso } from 'react-virtuoso';
+import { useNetwork } from '../lib/network-context';
 
 interface Message {
   id: string;
@@ -35,6 +36,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { networkId } = useNetwork();
 
   useEffect(() => {
     if (authLoading) return;
@@ -48,7 +50,8 @@ export default function Chat() {
     setDbError(null);
     
     try {
-      const messagesRef = ref(rtdb, `messages/${activeRoom.id}`);
+      if (!networkId) return;
+      const messagesRef = ref(rtdb, `networks/${networkId}/messages/${activeRoom.id}`);
       const q = query(messagesRef, limitToLast(50));
 
       const unsubscribe = onValue(q, (snapshot) => {
@@ -73,13 +76,13 @@ export default function Chat() {
       setDbError(`Connection Error: ${err.message}`);
       setLoading(false);
     }
-  }, [activeRoom, user, authLoading]);
+  }, [activeRoom, user, authLoading, networkId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageText.trim() || !user) return;
+    if (!messageText.trim() || !user || !networkId) return;
 
-    const messagesRef = ref(rtdb, `messages/${activeRoom.id}`);
+    const messagesRef = ref(rtdb, `networks/${networkId}/messages/${activeRoom.id}`);
     const newMessage = {
       text: messageText.trim(),
       senderId: user.uid,
@@ -97,8 +100,8 @@ export default function Chat() {
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (!window.confirm("Delete this message?")) return;
-    const msgRef = ref(rtdb, `messages/${activeRoom.id}/${msgId}`);
+    if (!window.confirm("Delete this message?") || !networkId) return;
+    const msgRef = ref(rtdb, `networks/${networkId}/messages/${activeRoom.id}/${msgId}`);
     try {
       await remove(msgRef);
     } catch (err: any) {

@@ -19,13 +19,13 @@ export interface GlobalState {
   galleryLoaded: boolean;
   calendarLoaded: boolean;
 
-  fetchProjects: () => void;
-  fetchEvents: () => void;
-  fetchClubs: () => void;
-  fetchNotices: () => void;
-  fetchArchives: () => void;
-  fetchGallery: () => void;
-  fetchCalendar: () => void;
+  fetchProjects: (networkId: string) => void;
+  fetchEvents: (networkId: string) => void;
+  fetchClubs: (networkId: string) => void;
+  fetchNotices: (networkId: string) => void;
+  fetchArchives: (networkId: string) => void;
+  fetchGallery: (networkId: string) => void;
+  fetchCalendar: (networkId: string) => void;
 }
 
 const activeSubscriptions: Record<string, () => void> = {};
@@ -47,10 +47,11 @@ export const useStore = create<GlobalState>((set) => ({
   galleryLoaded: false,
   calendarLoaded: false,
 
-  fetchProjects: () => {
-    if (activeSubscriptions['projects']) return;
-    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'), limit(20));
-    activeSubscriptions['projects'] = onSnapshot(q, (snapshot) => {
+  fetchProjects: (networkId: string) => {
+    const key = `projects_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/projects`), orderBy('createdAt', 'desc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ projects: data, projectsLoaded: true });
     }, (error) => {
@@ -59,10 +60,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchEvents: () => {
-    if (activeSubscriptions['events']) return;
-    const q = query(collection(db, 'events'), orderBy('date', 'asc'), limit(20));
-    activeSubscriptions['events'] = onSnapshot(q, (snapshot) => {
+  fetchEvents: (networkId: string) => {
+    const key = `events_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/events`), orderBy('date', 'asc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ events: data, eventsLoaded: true });
     }, (error) => {
@@ -71,10 +73,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchClubs: () => {
-    if (activeSubscriptions['clubs']) return;
-    const q = query(collection(db, 'clubs'), orderBy('createdAt', 'desc'), limit(20));
-    activeSubscriptions['clubs'] = onSnapshot(q, (snapshot) => {
+  fetchClubs: (networkId: string) => {
+    const key = `clubs_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/clubs`), orderBy('createdAt', 'desc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ clubs: data, clubsLoaded: true });
     }, (error) => {
@@ -83,10 +86,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchNotices: () => {
-    if (activeSubscriptions['notices']) return;
-    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(20));
-    activeSubscriptions['notices'] = onSnapshot(q, (snapshot) => {
+  fetchNotices: (networkId: string) => {
+    const key = `notices_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/notices`), orderBy('createdAt', 'desc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ notices: data, noticesLoaded: true });
     }, (error) => {
@@ -95,10 +99,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchArchives: () => {
-    if (activeSubscriptions['archives']) return;
-    const q = query(collection(db, 'archives'), orderBy('createdAt', 'desc'), limit(20));
-    activeSubscriptions['archives'] = onSnapshot(q, (snapshot) => {
+  fetchArchives: (networkId: string) => {
+    const key = `archives_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/archives`), orderBy('createdAt', 'desc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ archives: data, archivesLoaded: true });
     }, (error) => {
@@ -107,16 +112,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchGallery: () => {
-    console.log("fetchGallery function executed");
-    if (activeSubscriptions['gallery']) {
-      console.log("activeSubscriptions['gallery'] already exists, returning early");
-      return;
-    }
-    console.log("Setting up gallery onSnapshot listener...");
-    const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'), limit(20));
-    activeSubscriptions['gallery'] = onSnapshot(q, (snapshot) => {
-      console.log("Gallery onSnapshot SUCCESS! Docs received:", snapshot.docs.length);
+  fetchGallery: (networkId: string) => {
+    const key = `gallery_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/gallery`), orderBy('createdAt', 'desc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ gallery: data, galleryLoaded: true });
     }, (error) => {
@@ -125,10 +125,11 @@ export const useStore = create<GlobalState>((set) => ({
     });
   },
 
-  fetchCalendar: () => {
-    if (activeSubscriptions['calendar']) return;
-    const q = query(collection(db, 'calendar'), orderBy('date', 'asc'), limit(20));
-    activeSubscriptions['calendar'] = onSnapshot(q, (snapshot) => {
+  fetchCalendar: (networkId: string) => {
+    const key = `calendar_${networkId}`;
+    if (activeSubscriptions[key]) return;
+    const q = query(collection(db, `networks/${networkId}/calendar`), orderBy('date', 'asc'), limit(20));
+    activeSubscriptions[key] = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       set({ calendar: data, calendarLoaded: true });
     }, (error) => {

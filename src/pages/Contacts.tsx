@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import { Link } from 'react-router-dom';
+import { useNetwork } from '../lib/network-context';
 
 interface StudentProfile {
   id: string;
@@ -22,9 +23,11 @@ export default function Contacts() {
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const { networkId } = useNetwork();
 
   useEffect(() => {
-    const q = query(collection(db, 'profiles'), orderBy('displayName', 'asc'));
+    if (!networkId) return;
+    const q = query(collection(db, `networks/${networkId}/members`), orderBy('displayName', 'asc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -35,7 +38,7 @@ export default function Contacts() {
     });
 
     return () => unsub();
-  }, []);
+  }, [networkId]);
 
   const filteredStudents = students.filter(s => 
     s.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -57,7 +60,7 @@ export default function Contacts() {
             <div className="w-1 h-1 bg-brand-pink rounded-full animate-pulse" />
             <span className="text-[10px] font-black text-brand-highlight uppercase tracking-[0.4em]">Official Channels</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tighter">Connect with CSE</h1>
+          <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tighter">Member Directory</h1>
           <p className="text-white/40 font-medium max-w-md">
             Reach out to our department or browse the directory of 130 future engineers.
           </p>
@@ -149,7 +152,7 @@ export default function Contacts() {
                           {student.displayName}
                         </h3>
                         <p className="text-[10px] font-black text-brand-pink/50 uppercase tracking-widest truncate">
-                          {student.batch ? `Batch ${student.batch}` : 'CSE Student'}
+                          {student.batch ? `Cohort ${student.batch}` : 'Student'}
                         </p>
                       </div>
                     </div>
